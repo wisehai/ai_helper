@@ -37,15 +37,25 @@ def translate(text):
 def main():  
     parser = argparse.ArgumentParser(description="终端AI助手")  
     parser.add_argument("command", choices=["chat", "dic"], help="选择功能: chat(聊天)或dic(翻译)")  
-    parser.add_argument("prompt", nargs="+", help="要处理的文本")  
+    parser.add_argument("prompt", nargs="*", help="要处理的文本")  
     
     args = parser.parse_args()  
-    prompt_text = " ".join(args.prompt)  
     
     if not API_KEY:  
         print("错误: 未设置API密钥。请设置环境变量AI_API_KEY。")  
         sys.exit(1)  
-        
+    
+    # 检查是否通过管道输入  
+    if not sys.stdin.isatty():  
+        # 从管道读取输入  
+        prompt_text = sys.stdin.read().strip()  
+    else:  
+        # 从命令行参数读取输入  
+        if not args.prompt:  
+            print("错误: 请提供输入文本")  
+            sys.exit(1)  
+        prompt_text = " ".join(args.prompt)  
+    
     if args.command == "chat":  
         print(chat(prompt_text))  
     elif args.command == "dic":  
