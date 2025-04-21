@@ -28,11 +28,12 @@ def check_internet_connection():
     return False
 
 def chat_with_online_api(prompt):  
-    """使用在线API聊天"""  
+    """使用在线API聊天 - 流式输出版"""  
     data = {  
-        "model": "Qwen/QwQ-32B",  # 或gpt-3.5-turbo等  
+        "model": "Pro/deepseek-ai/DeepSeek-V3",  
         "messages": [{"role": "user", "content": prompt}],  
-        "temperature": 0.7  
+        "temperature": 0.7,  
+        "stream": True  # 启用流式输出  
     }  
     
     headers = {  
@@ -41,13 +42,49 @@ def chat_with_online_api(prompt):
     }  
     
     try:  
-        response = requests.post(ONLINE_API_URL, headers=headers, json=data, timeout=10)  
-        if response.status_code == 200:  
-            return response.json()["choices"][0]["message"]["content"]  
-        else:  
-            return f"API错误: {response.status_code}, {response.text}"  
+        # 启用流式响应  
+        with requests.post(ONLINE_API_URL, headers=headers, json=data,   
+                          stream=True, timeout=60) as response:  
+            
+            if response.status_code != 200:  
+                return f"API错误: {response.status_code}, {response.text}"  
+            
+            # 收集完整响应以便返回  
+            full_response = ""  
+            
+            # 处理SSE格式的流式响应  
+            for line in response.iter_lines():  
+                if not line:  
+                    continue  
+                    
+                # 移除"data: "前缀并解析JSON  
+                if line.startswith(b'data: '):  
+                    json_str = line[6:].decode('utf-8')  
+                    
+                    # 跳过[DONE]消息  
+                    if json_str.strip() == "[DONE]":  
+                        break  
+                        
+                    try:  
+                        chunk = json.loads(json_str)  
+                        
+                        # 提取内容(不同API可能有不同结构)  
+                        if "choices" in chunk and len(chunk["choices"]) > 0:  
+                            delta = chunk["choices"][0].get("delta", {})  
+                            if "content" in delta:  
+                                content = delta["content"]  
+                                # 实时输出  
+                                print(content, end="", flush=True)  
+                                full_response += content  
+                    except json.JSONDecodeError:  
+                        continue  
+            
+            # 结束时打印换行  
+            print()  
+            return full_response  
+            
     except requests.exceptions.RequestException as e:  
-        return f"在线API请求失败: {str(e)}"  
+        return f"在线API请求失败: {str(e)}"
 
 def chat_with_ollama(prompt):  
     """使用本地Ollama模型聊天 - 支持流式输出"""  
