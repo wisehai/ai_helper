@@ -10,6 +10,7 @@ import time
 # 配置  
 API_KEY = os.environ.get("AI_API_KEY", "")  
 ONLINE_API_URL = "https://api.siliconflow.cn/v1/chat/completions"  # 或OpenAI API  
+ONLINE_MODEL = "Qwen/QwQ-32B"
 OLLAMA_URL = "http://localhost:11434/api/chat"  # Ollama本地API  
 OLLAMA_MODEL = "gemma3:1b"  # 本地模型名称  
 
@@ -30,7 +31,7 @@ def check_internet_connection():
 def chat_with_online_api(prompt):  
     """使用在线API聊天 - 流式输出版"""  
     data = {  
-        "model": "Pro/deepseek-ai/DeepSeek-V3",  
+        "model": ONLINE_MODEL,  
         "messages": [{"role": "user", "content": prompt}],  
         "temperature": 0.7,  
         "stream": True  # 启用流式输出  
@@ -72,10 +73,17 @@ def chat_with_online_api(prompt):
                         if "choices" in chunk and len(chunk["choices"]) > 0:  
                             delta = chunk["choices"][0].get("delta", {})  
                             if "content" in delta:  
-                                content = delta["content"]  
-                                # 实时输出  
-                                print(content, end="", flush=True)  
-                                full_response += content  
+                                # 使用get()方法提供默认值，避免None值  
+                                content = delta.get("content", "")  
+                                if content:  # 确保content不为None或空字符串  
+                                    print(content, end="", flush=True)  
+                                    full_response += content
+
+                        # 检查思考过程字段 (根据API调整)  
+                        if "reasoning_content" in delta:  
+                            thinking = delta.get("reasoning_content", "")  
+                            if thinking:  
+                                print(thinking, end="", flush=True) 
                     except json.JSONDecodeError:  
                         continue  
             
