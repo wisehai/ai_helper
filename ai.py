@@ -10,7 +10,7 @@ import time
 # 配置  
 API_KEY = os.environ.get("AI_API_KEY", "")  
 ONLINE_API_URL = "https://api.siliconflow.cn/v1/chat/completions"  # 或OpenAI API  
-ONLINE_MODEL = "Qwen/QwQ-32B"
+ONLINE_MODEL = os.environ.get("AI_ONLINE_MODEL", "")
 OLLAMA_URL = "http://localhost:11434/api/chat"  # Ollama本地API  
 OLLAMA_MODEL = "gemma3:1b"  # 本地模型名称  
 
